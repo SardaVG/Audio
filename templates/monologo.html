@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ejercicio de Traducción - English Academy</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f8ff;
+        }
+        
+        .header {
+            background-color: #003366;
+            color: white;
+            text-align: center;
+            padding: 1rem;
+        }
+
+        .content {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .text-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2rem;
+        }
+
+        .column {
+            width: 45%;
+        }
+
+        .back-button {
+            display: inline-block;
+            margin: 1rem;
+            padding: 0.5rem 1rem;
+            background-color: #004d99;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+
+        .back-button:hover {
+            background-color: #0066cc;
+        }
+
+        .play-button {
+            display: inline-block;
+            margin: 1rem;
+            padding: 0.5rem 1rem;
+            background-color: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .play-button:hover {
+            background-color: #218838;
+        }
+
+        #audioStatus {
+            color: #004d99;
+            margin: 1rem;
+            font-weight: bold;
+        }
+
+        .word-clickable {
+            cursor: pointer;
+            color: #004d99;
+            text-decoration: underline;
+            display: inline-block;
+            margin: 0 2px;
+        }
+        
+        .word-clickable:hover {
+            color: #0066cc;
+            background-color: #f0f8ff;
+        }
+
+        #translationBox {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            z-index: 1000;
+            max-width: 80%;
+        }
+
+        .recording-controls {
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        .record-button {
+            padding: 0.5rem 1rem;
+            margin: 0.5rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .record-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #status, #transcription, #similitud {
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Ejercicio de Traducción</h1>
+        <a href="{{ url_for('index') }}" class="back-button">Volver al inicio</a>
+    </div>
+
+    <div class="content">
+        <div class="text-container">
+            <div class="column">
+                <h3>English Text</h3>
+                <button class="play-button" onclick="playAudio()">
+                    🔊 Read Text
+                </button>
+                <div id="audioStatus"></div>
+                <audio id="audioPlayer"></audio>
+                <p id="englishText">
+                    {% for word in english_text.split() %}
+                        <span class="word-clickable" onclick="translateWord(this.textContent.trim())">
+                            {{ word }}
+                        </span>
+                    {% endfor %}
+                </p>
+            </div>
+            <div class="column">
+                <h3>Texto en Español</h3>
+                <p id="spanishText">{{ spanish_text }}</p>
+            </div>
+        </div>
+
+        <div class="recording-controls">
+            <h3>Practice Reading</h3>
+            <button id="record" class="record-button">🎙️ Record</button>
+            <button id="stop" class="record-button" disabled>⏹️ Stop</button>
+            <p id="status"></p>
+            <h4>Your Reading:</h4>
+            <p id="transcription"></p>
+            <h4>Accuracy Score:</h4>
+            <p id="similitud"></p>
+        </div>
+    </div>
+
+    <div id="translationBox">
+        <h4>Translation</h4>
+        <p id="translationText"></p>
+        <button class="play-button" onclick="playTranslation()">🔊 Listen</button>
+        <button onclick="closeTranslation()" class="back-button">Close</button>
+    </div>
+
+    <script>
+        async function playAudio() {
+            await generateAndPlayAudio(document.getElementById('englishText').textContent);
+        }
+
+        async function translateWord(word) {
+            try {
+                const response = await fetch('/translate_word', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ word: word.replace(/[.,!?]/g, '') })
+                });
+
+                if (!response.ok) throw new Error('Network response was not ok');
+
+                const data = await response.json();
+                document.getElementById('translationText').textContent = data.translation;
+                document.getElementById('translationBox').style.display = 'block';
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error getting translation');
+            }
+        }
+
+        async function generateAndPlayAudio(text) {
+            const statusDiv = document.getElementById('audioStatus');
+            const audioPlayer = document.getElementById('audioPlayer');
+
+            try {
+                statusDiv.textContent = 'Generating audio...';
+                
+                const response = await fetch('/generate_audio', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: text })
+                });
+
+                if (!response.ok) throw new Error('Network response was not ok');
+
+                const audioBlob = await response.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+                
+                audioPlayer.src = audioUrl;
+                await audioPlayer.play();
+                
+                statusDiv.textContent = 'Playing audio...';
+                
+                audioPlayer.onended = () => {
+                    statusDiv.textContent = '';
+                    URL.revokeObjectURL(audioUrl);
+                };
+            } catch (error) {
+                console.error('Error:', error);
+                statusDiv.textContent = 'Error generating audio. Please try again.';
+            }
+        }
+
+        async function playTranslation() {
+            const text = document.getElementById('translationText').textContent;
+            await generateAndPlayAudio(text);
+        }
+
+        function closeTranslation() {
+            document.getElementById('translationBox').style.display = 'none';
+        }
+
+        let mediaRecorder;
+        let audioChunks = [];
+
+        function isSafari() {
+            return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        }
+
+        async function convertWebMtoWav(webmBlob) {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const arrayBuffer = await webmBlob.arrayBuffer();
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+            // Parameters for WAV: PCM 16 bits, 44.1 kHz
+            const wavBlob = encodeWAV(audioBuffer);
+            return new Blob([wavBlob], { type: "audio/wav" });
+        }
+
+        function encodeWAV(audioBuffer) {
+            const numChannels = audioBuffer.numberOfChannels;
+            const sampleRate = audioBuffer.sampleRate;
+            const format = 1; // PCM
+            const bitDepth = 16;
+
+            let bufferLength = 44 + audioBuffer.length * numChannels * 2;
+            let buffer = new ArrayBuffer(bufferLength);
+            let view = new DataView(buffer);
+
+            writeString(view, 0, "RIFF");
+            view.setUint32(4, 36 + audioBuffer.length * numChannels * 2, true);
+            writeString(view, 8, "WAVE");
+            writeString(view, 12, "fmt ");
+            view.setUint32(16, 16, true);
+            view.setUint16(20, format, true);
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * numChannels * 2, true);
+            view.setUint16(32, numChannels * 2, true);
+            view.setUint16(34, bitDepth, true);
+            writeString(view, 36, "data");
+            view.setUint32(40, audioBuffer.length * numChannels * 2, true);
+
+            let offset = 44;
+            for (let i = 0; i < audioBuffer.numberOfChannels; i++) {
+                let channelData = audioBuffer.getChannelData(i);
+                for (let j = 0; j < channelData.length; j++) {
+                    let sample = Math.max(-1, Math.min(1, channelData[j]));
+                    sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                    view.setInt16(offset, sample, true);
+                    offset += 2;
+                }
+            }
+            return buffer;
+        }
+
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+
+        document.getElementById("record").onclick = async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        sampleRate: 44100,
+                        channelCount: 1,
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                    }
+                });
+
+                const options = {
+                    mimeType: isSafari() ? "audio/mp4" : "audio/webm;codecs=opus",
+                    bitsPerSecond: 192000,
+                };
+
+                mediaRecorder = new MediaRecorder(stream, options);
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+                    const wavBlob = await convertWebMtoWav(audioBlob);
+                    const formData = new FormData();
+                    formData.append("audio", wavBlob, "audio.wav");
+                    formData.append("original_text", document.getElementById('englishText').textContent);
+
+                    document.getElementById("status").innerText = "Processing audio...";
+
+                    try {
+                        const response = await fetch("/transcribe", {
+                            method: "POST",
+                            body: formData,
+                        });
+
+                        const data = await response.json();
+                        if (data.transcription) {
+                            document.getElementById("transcription").innerText = data.transcription;
+                            document.getElementById("similitud").innerText = `${data.similitud}/10`;
+                        } else {
+                            document.getElementById("transcription").innerText = "Error: " + data.error;
+                        }
+                    } catch (error) {
+                        document.getElementById("transcription").innerText = "Error processing audio.";
+                    }
+
+                    document.getElementById("status").innerText = "";
+                    audioChunks = [];
+                };
+
+                mediaRecorder.start();
+                document.getElementById("record").disabled = true;
+                document.getElementById("stop").disabled = false;
+            } catch (error) {
+                console.error("Error accessing microphone:", error);
+                alert("Could not access microphone. Please check permissions.");
+            }
+        };
+
+        document.getElementById("stop").onclick = () => {
+            mediaRecorder.stop();
+            document.getElementById("record").disabled = false;
+            document.getElementById("stop").disabled = true;
+        };
+    </script>
+</body>
+</html> 

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text to Speech</title>
+</head>
+<body>
+    <h1>Dog Monologue</h1>
+    <div id="text-id">{{ monologue }}</div>
+    <button onclick="playAudio()">Play</button>
+    <audio id="audio"></audio>
+    <p id="message"></p>
+
+    <script>
+        async function playAudio() {
+            let text = document.getElementById("text-id").innerText;
+            let url = "/generate_audio?word=" + encodeURIComponent(text);
+
+            try {
+                let response = await fetch(url);
+                if (!response.ok) throw new Error("Failed to fetch audio");
+
+                let blob = await response.blob();
+                let audioURL = URL.createObjectURL(blob);
+                let audio = document.getElementById("audio");
+                audio.src = audioURL;
+                audio.play();
+
+                document.getElementById("message").innerText = "Playing...";
+            } catch (error) {
+                console.error("Error:", error);
+                document.getElementById("message").innerText = "Error generating audio.";
+            }
+        }
+    </script>
+</head>
+
+</html>

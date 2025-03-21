@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Learning Agent</title>
+    <script>
+        async function translateWord(word) {
+            const response = await fetch('/translate_word', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ word })
+            });
+            const data = await response.json();
+            alert(`Translation: ${data.translation || data.error}`);
+        }
+    </script>
+</head>
+<body>
+    <h1>Learn English with AI</h1>
+    <p>Click on any word to see its translation and example usage.</p>
+    <p>
+        {% for word in monologue.split() %}
+            <span onclick="translateWord(`{{ word|replace(',', '')|replace('.', '') }}`)" style="cursor: pointer; color: blue;">
+                {{ word }}
+            </span>
+        {% endfor %}
+    </p>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Academy - Tu camino al éxito</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f8ff;
+        }
+        
+        .header {
+            background-color: #003366;
+            color: white;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .navbar {
+            background-color: #004d99;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            padding: 1rem 2rem;
+            margin: 0 1rem;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .navbar a:hover {
+            background-color: #0066cc;
+        }
+
+        .content {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+            margin-bottom: 6rem;
+        }
+
+        .section {
+            background-color: white;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .footer {
+            background-color: #003366;
+            color: white;
+            text-align: center;
+            padding: 1rem;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .logo {
+            max-width: 200px;
+            height: auto;
+            margin-bottom: 1rem;
+        }
+
+        .bottom-spacer {
+            height: 300px;  /* Adjust this value to control the amount of empty space */
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="/static/pagelogo.jpg" alt="English Academy Logo" class="logo">
+        <h1>Bienvenidos English Academy</h1>
+        <p>Tu puerta al mundo del inglés</p>
+    </div>
+
+    <div class="navbar">
+        <a href="#" onclick="showSection('inicio')">Inicio</a>
+        <a href="#" onclick="showSection('mision')">Misión</a>
+        <a href="#" onclick="showSection('valores')">Valores</a>
+        <a href="{{ url_for('monologo') }}">Traducción</a>
+    </div>
+
+    <div class="content">
+        <div id="inicio" class="section">
+            <h2>Bienvenidos a English Academy</h2>
+            <p>Somos tu mejor opción para aprender inglés de manera efectiva y divertida. Con más de 10 años de experiencia, 
+            nuestros profesores nativos te ayudarán a alcanzar tus metas lingüísticas.</p>
+            <ul>
+                <li>Clases personalizadas</li>
+                <li>Grupos reducidos</li>
+                <li>Metodología moderna</li>
+                <li>Horarios flexibles</li>
+            </ul>
+        </div>
+
+        <div id="mision" class="section hidden">
+            <h2>Nuestra Misión</h2>
+            <p>En English Academy, nuestra misión es proporcionar una educación de calidad en el idioma inglés, 
+            facilitando herramientas y conocimientos que permitan a nuestros estudiantes desarrollarse en un mundo globalizado.</p>
+        </div>
+
+        <div id="valores" class="section hidden">
+            <h2>Nuestros Valores</h2>
+            <ul>
+                <li>Excelencia académica</li>
+                <li>Compromiso con el estudiante</li>
+                <li>Innovación constante</li>
+                <li>Respeto y diversidad</li>
+                <li>Pasión por la enseñanza</li>
+            </ul>
+        </div>
+
+        <div class="bottom-spacer"></div>
+    </div>
+
+    <div class="footer">
+        <p>© 2024 English Academy - Todos los derechos reservados</p>
+    </div>
+
+    <script>
+        function showSection(sectionId) {
+            // Ocultar todas las secciones
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            
+            // Mostrar la sección seleccionada
+            document.getElementById(sectionId).classList.remove('hidden');
+        }
+
+        // Mostrar la sección de inicio por defecto
+        showSection('inicio');
+    </script>
+</body>
+</html>
