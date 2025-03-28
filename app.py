@@ -12,7 +12,7 @@ UPLOAD_FOLDER = os.path.join(os.getcwd(), "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
-openai.api_key = os.getenv("OPENAI_API_KEY")  # Configurar la API Key en variable de entorno
+openai.api_key = ""  # Configurar la API Key en variable de entorno
 
 MONOLOGUE = """
 Dogs are loyal and friendly animals. They love to play, run, and spend time with their owners. 
@@ -82,14 +82,11 @@ def generate_audio():
         if not text:
             return jsonify({"error": "No text provided"}), 400
 
-        # Create a BytesIO object to store the audio
         audio_io = BytesIO()
         
-        # Generate the audio using gTTS
+        # For normal speed, we use regular gTTS without modifications
         tts = gTTS(text=text, lang='en', slow=False)
         tts.write_to_fp(audio_io)
-        
-        # Seek to the beginning of the BytesIO object
         audio_io.seek(0)
         
         return send_file(
@@ -136,6 +133,66 @@ def transcribe():
             except Exception:
                 pass
         return jsonify({"error": str(e)}), 500
+
+@app.route('/generate_practice_sentences')
+def generate_practice_sentences():
+    try:
+        prompt = ("Generate 4 simple English sentences at A1 level for listening practice. "
+                 "Each sentence should be a statement about airplanes, simple and brief. "
+                 "Return them in JSON format only. "
+                 '{"text1": "sentence1", "text2": "sentence2", "text3": "sentence3", "text4": "sentence4"}')
+
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=100
+        )
+
+        json_generated = response.choices[0].message["content"].strip()
+        texts = eval(json_generated)
+        return jsonify(texts)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/generate_slow_audio', methods=['POST'])
+def generate_slow_audio():
+    try:
+        data = request.get_json()
+        text = data.get('text', '')
+        
+        if not text:
+            return jsonify({"error": "No text provided"}), 400
+
+        audio_io = BytesIO()
+        # For slow speed, we use the punctuation trick
+        modified_text = text.replace(' ', '. ') # This trick makes gTTS read more deliberately
+        tts = gTTS(text=modified_text, lang='en', slow=False)
+        tts.write_to_fp(audio_io)
+        audio_io.seek(0)
+        
+        return send_file(
+            audio_io,
+            mimetype='audio/mp3',
+            as_attachment=True,
+            download_name='speech_slow.mp3'
+        )
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/evaluate", methods=["POST"])
+def evaluate():
+    data = request.json
+    original_text = data.get("original_text", "").lower()
+    user_text = data.get("user_text", "").lower()
+    
+    # Using SequenceMatcher to calculate similarity between texts
+    similarity = SequenceMatcher(None, original_text, user_text).ratio()
+    
+    # Convert to percentage and round to 2 decimal places
+    score = round(similarity * 100, 2)
+    
+    return jsonify({"score": score})
 
 def compare_texts(text1, text2):
     # Normalize and convert to lowercase for better comparison

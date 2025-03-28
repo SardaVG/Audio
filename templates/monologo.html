@@ -123,6 +123,104 @@
         #status, #transcription, #similitud {
             margin: 1rem 0;
         }
+
+        .practice-section {
+            margin-top: 3rem;
+            padding: 2rem;
+            background: #f8f9fa;
+            border-radius: 15px;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 10px;
+            background: #ddd;
+            border-radius: 5px;
+            margin: 1rem 0;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: #28a745;
+            border-radius: 5px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .practice-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .practice-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .speed-controls {
+            display: flex;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .speed-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .speed-btn.slow {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .speed-btn.normal {
+            background: #28a745;
+            color: white;
+        }
+
+        .practice-input {
+            width: 100%;
+            padding: 0.5rem;
+            margin: 1rem 0;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .submit-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .feedback {
+            margin-top: 1rem;
+            font-weight: bold;
+        }
+
+        .final-score {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .practice-again-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 1rem;
+            font-size: 1.1rem;
+        }
     </style>
 </head>
 <body>
@@ -163,6 +261,25 @@
             <p id="transcription"></p>
             <h4>Accuracy Score:</h4>
             <p id="similitud"></p>
+        </div>
+
+        <div class="practice-section">
+            <h2>🎯 Listening Practice Challenge</h2>
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            
+            <div id="practiceContainer">
+                <div class="practice-cards" id="practiceCards"></div>
+                
+                <div class="final-score" id="finalScore" style="display: none;">
+                    <h3>🏆 Final Score</h3>
+                    <div class="score-display"></div>
+                    <button class="practice-again-btn" onclick="startPractice()">
+                        🎲 Practice Again
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -372,6 +489,131 @@
             document.getElementById("record").disabled = false;
             document.getElementById("stop").disabled = true;
         };
+
+        // Add new practice functionality
+        let practiceTexts = {};
+        let currentProgress = 0;
+        let scores = [];
+
+        async function startPractice() {
+            try {
+                // Clear previous content first
+                const container = document.getElementById('practiceCards');
+                container.innerHTML = '';
+                document.getElementById('finalScore').style.display = 'none';
+                
+                // Reset scores and progress
+                scores = [];
+                currentProgress = 0;
+                updateProgress();
+
+                // Fetch new sentences
+                const response = await fetch('/generate_practice_sentences');
+                if (!response.ok) throw new Error('Failed to fetch new sentences');
+                
+                practiceTexts = await response.json();
+                
+                // Create new cards with the fresh sentences
+                Object.entries(practiceTexts).forEach(([key, text], index) => {
+                    const card = createPracticeCard(key, text, index + 1);
+                    container.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error generating new practice sentences. Please try again.');
+            }
+        }
+
+        function createPracticeCard(key, text, number) {
+            const div = document.createElement('div');
+            div.className = 'practice-card';
+            div.innerHTML = `
+                <h3>Sentence ${number}</h3>
+                <div class="speed-controls">
+                    <button class="speed-btn slow" onclick="playAudio('${text}', true)">
+                        🐢 Slow
+                    </button>
+                    <button class="speed-btn normal" onclick="playAudio('${text}', false)">
+                        🚀 Normal
+                    </button>
+                </div>
+                <input type="text" class="practice-input" placeholder="Type what you hear...">
+                <button class="submit-btn" onclick="checkAnswer('${key}', '${text}')">
+                    Check Answer
+                </button>
+                <div class="feedback"></div>
+            `;
+            return div;
+        }
+
+        async function playAudio(text, slow) {
+            const endpoint = slow ? '/generate_slow_audio' : '/generate_audio';
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+
+                const audioBlob = await response.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const audio = new Audio(audioUrl);
+                await audio.play();
+            } catch (error) {
+                console.error('Error playing audio:', error);
+            }
+        }
+
+        async function checkAnswer(key, originalText) {
+            const card = document.querySelector(`[onclick="checkAnswer('${key}', '${originalText}')"]`)
+                .closest('.practice-card');
+            const input = card.querySelector('.practice-input');
+            const feedback = card.querySelector('.feedback');
+
+            const response = await fetch('/evaluate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    original_text: originalText,
+                    user_text: input.value
+                })
+            });
+
+            const data = await response.json();
+            scores.push(data.score);
+            
+            feedback.innerHTML = `Score: ${data.score}% ${data.score > 80 ? '🎉' : '💪'}`;
+            currentProgress++;
+            updateProgress();
+
+            if (currentProgress === 4) {
+                showFinalScore();
+            }
+        }
+
+        function updateProgress() {
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = `${(currentProgress / 4) * 100}%`;
+        }
+
+        function showFinalScore() {
+            const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+            const finalScoreDiv = document.getElementById('finalScore');
+            finalScoreDiv.style.display = 'block';
+            finalScoreDiv.querySelector('.score-display').innerHTML = `
+                <h2>Average Score: ${avgScore.toFixed(2)}%</h2>
+                <p>${getMotivationalMessage(avgScore)}</p>
+            `;
+        }
+
+        function getMotivationalMessage(score) {
+            if (score >= 90) return "¡Excelente trabajo! 🌟";
+            if (score >= 70) return "¡Muy bien! Sigue así 💪";
+            return "¡Sigue practicando! 📚";
+        }
+
+        // Start practice when page loads
+        document.addEventListener('DOMContentLoaded', startPractice);
     </script>
 </body>
 </html> 
