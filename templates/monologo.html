@@ -463,7 +463,8 @@
                         const data = await response.json();
                         if (data.transcription) {
                             document.getElementById("transcription").innerText = data.transcription;
-                            document.getElementById("similitud").innerText = `${data.similitud}/10`;
+                            const scoreValue = (parseFloat(data.similitud) * 100) / 10;
+                            document.getElementById("similitud").innerText = `${scoreValue.toFixed(1)}%`;
                         } else {
                             document.getElementById("transcription").innerText = "Error: " + data.error;
                         }

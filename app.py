@@ -195,16 +195,20 @@ def evaluate():
     return jsonify({"score": score})
 
 def compare_texts(text1, text2):
-    # Normalize and convert to lowercase for better comparison
+    # Normalize texts: remove punctuation, convert to lowercase, and strip whitespace
     text1 = text1.strip().lower()
     text2 = text2.strip().lower()
-
-    # Compare texts and calculate similarity
+    
+    # Remove any punctuation that might affect the comparison
+    for char in '.,!?':
+        text1 = text1.replace(char, '')
+        text2 = text2.replace(char, '')
+    
+    # Calculate similarity
     similarity = SequenceMatcher(None, text1, text2).ratio()
-
-    # Convert similarity from 0-1 to 0-10 scale
-    score = round(similarity * 10, 2)
-    return score
+    
+    # Return score directly (will be a value between 0 and 1)
+    return similarity
 
 if __name__ == '__main__':
     app.run(debug=True, port=12345)
